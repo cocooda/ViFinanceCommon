@@ -33,12 +33,18 @@ public class IdentifierDAO {
         return null;
     }
 
-    public static Identifier getIdentifierById(UUID userId) throws SQLException {
-        String query = "SELECT id, email, password_hash, login_method, created_at, last_login, failed_attempts, lockout_until FROM identifier WHERE id = ?";
+    public static Identifier getIdentifierByAccountId(String accountId) throws SQLException {
+        String query = """
+            SELECT i.id, i.email, i.password_hash, i.login_method, i.created_at, i.last_login,
+                   i.failed_attempts, i.lockout_until
+            FROM identifier i
+            JOIN account a ON i.id_hash = a.user_id
+            WHERE a.id = ?
+        """;
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
     
-            pstmt.setObject(1, userId);
+            pstmt.setString(1, accountId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return new Identifier(
@@ -56,7 +62,6 @@ public class IdentifierDAO {
         }
         return null;
     }
-    
 
     public static void updateFailedAttempts(String email, int failedAttempts, LocalDateTime lockoutUntil) throws SQLException {
         String query = "UPDATE identifier SET failed_attempts = ?, lockout_until = ? WHERE email = ?";

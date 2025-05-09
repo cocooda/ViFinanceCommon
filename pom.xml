@@ -163,13 +163,6 @@
             <version>0.4.14</version>
         </dependency>
 
-        <!-- MailSlurp for Virtual Email Testing -->
-        <dependency>
-            <groupId>com.mailslurp</groupId>
-            <artifactId>mailslurp-client-java</artifactId>
-            <version>15.19.22</version>
-        </dependency>
-
         <!-- Google API Java Client Libraries -->
         <dependency>
             <groupId>com.google.api-client</groupId>
@@ -198,10 +191,6 @@
     </dependencies>
 
     <repositories>
-        <repository>
-            <id>github</id>
-            <url>https://maven.pkg.github.com/mailslurp/mailslurp-client-java</url>
-        </repository>
         <repository>
             <id>google-api-repository</id>
             <url>https://maven-central.storage.googleapis.com</url>
