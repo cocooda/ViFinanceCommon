@@ -37,22 +37,53 @@ public class AccountDAO {
         return null;
     }
 
-    // Method to delete an account by user ID
-    public static boolean deleteAccountByUserId(UUID identifierId) throws SQLException {
-        String hashedId = IDHash.hashUUID(identifierId);
-        String query = "DELETE FROM account WHERE user_id = ?";
+    // Method to get an account by user ID
+    public static Account getAccountByUserId(UUID userId) throws SQLException {
+        String hashedUserId = IDHash.hashUUID(userId);
+        String query = "SELECT user_id, username, avatar_link, bio FROM account WHERE user_id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, hashedUserId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Account(
+                        rs.getString("user_id"),
+                        rs.getString("username"),
+                        rs.getString("avatar_link"),
+                        rs.getString("bio")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
+    // Method to get an account by account ID
+    public static Account getAccountByAccountId(String accountId) throws SQLException {
+        String query = "SELECT user_id, username, avatar_link, bio FROM account WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, hashedId);
-            return pstmt.executeUpdate() > 0;
+
+            pstmt.setString(1, accountId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String userId = rs.getString("user_id");
+                String userName = rs.getString("username");
+                String avatarLink = rs.getString("avatar_link");
+                String bio = rs.getString("bio");
+
+                return new Account(userId, userName, avatarLink, bio);
+            }
         }
+
+        return null;
     }
 
     // Method to move an account to the deleted_accounts table (soft delete)
-    public static boolean moveAccountToDeleted(UUID identifierId) throws SQLException {
-        String hashedId = IDHash.hashUUID(identifierId);
-
+    public static boolean moveAccountToDeleted(String userId) throws SQLException {
         String insertQuery = "INSERT INTO deleted_accounts (user_id, username, avatar_link, bio, deleted_at) " +
                              "SELECT user_id, username, avatar_link, bio, NOW() FROM account WHERE user_id = ?";
         String deleteQuery = "DELETE FROM account WHERE user_id = ?";
@@ -63,8 +94,8 @@ public class AccountDAO {
             try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery);
                  PreparedStatement deleteStmt = conn.prepareStatement(deleteQuery)) {
 
-                insertStmt.setString(1, hashedId);
-                deleteStmt.setString(1, hashedId);
+                insertStmt.setString(1, userId);
+                deleteStmt.setString(1, userId);
 
                 int inserted = insertStmt.executeUpdate();
                 int deleted = deleteStmt.executeUpdate();
@@ -80,23 +111,44 @@ public class AccountDAO {
         }
     }
 
-    // Method to check if an account is in the deleted_accounts table
-    public static boolean isAccountInDeleted(UUID identifierId) throws SQLException {
+    public static Account getDeletedAccountByUserId(UUID identifierId) throws SQLException {
         String hashedId = IDHash.hashUUID(identifierId);
+        String query = "SELECT * FROM deleted_accounts WHERE user_id = ?";
+        
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, hashedId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String userId = rs.getString("user_id");
+                String userName = rs.getString("username");
+                String avatarLink = rs.getString("avatar_link");
+                String bio = rs.getString("bio");
+
+                return new Account(userId, userName, avatarLink, bio);
+            }
+        }
+
+        return null;
+    }
+    
+
+    // Method to check if an account is in the deleted_accounts table
+    public static boolean isAccountInDeleted(String userId) throws SQLException {
         String query = "SELECT COUNT(*) FROM deleted_accounts WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, hashedId);
+            pstmt.setString(1, userId);
             ResultSet rs = pstmt.executeQuery();
             return rs.next() && rs.getInt(1) > 0;
         }
     }
 
     // Method to restore a deleted account
-    public static boolean restoreUserById(UUID identifierId) throws SQLException {
-        String hashedId = IDHash.hashUUID(identifierId);
-
+    public static boolean restoreUserById(String userId) throws SQLException {
         String restoreQuery = "INSERT INTO account (user_id, username, avatar_link, bio) " +
                               "SELECT user_id, username, avatar_link, bio FROM deleted_accounts WHERE user_id = ?";
         String deleteQuery = "DELETE FROM deleted_accounts WHERE user_id = ?";
@@ -107,8 +159,8 @@ public class AccountDAO {
             try (PreparedStatement restoreStmt = conn.prepareStatement(restoreQuery);
                  PreparedStatement deleteStmt = conn.prepareStatement(deleteQuery)) {
 
-                restoreStmt.setString(1, hashedId);
-                deleteStmt.setString(1, hashedId);
+                restoreStmt.setString(1, userId);
+                deleteStmt.setString(1, userId);
 
                 int restored = restoreStmt.executeUpdate();
                 int deleted = deleteStmt.executeUpdate();
@@ -125,14 +177,13 @@ public class AccountDAO {
     }
 
     // Method to get the deleted_at timestamp of a deleted account
-    public static Optional<LocalDateTime> getDeletedAccountDeletedAt(UUID identifierId) throws SQLException {
-        String hashedId = IDHash.hashUUID(identifierId);
+    public static Optional<LocalDateTime> getDeletedAccountDeletedAt(String userId) throws SQLException {
         String query = "SELECT deleted_at FROM deleted_accounts WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
 
-            pstmt.setString(1, hashedId);
+            pstmt.setString(1, userId);
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
@@ -156,85 +207,21 @@ public class AccountDAO {
     }
 
     // Method to delete an account from the deleted_accounts table
-    public static boolean deleteFromDeletedAccounts(UUID identifierId) throws SQLException {
-        String hashedId = IDHash.hashUUID(identifierId);
+    public static boolean deleteFromDeletedAccounts(String userId) throws SQLException {
         String query = "DELETE FROM deleted_accounts WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, hashedId);
+            pstmt.setString(1, userId);
             return pstmt.executeUpdate() > 0;
         }
     }
-
-    // Method to get an account by user ID
-    public static Account getAccountByUserId(UUID userId) throws SQLException {
-        String hashedUserId = IDHash.hashUUID(userId);
-        String query = "SELECT user_id, username, avatar_link, bio FROM account WHERE user_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, hashedUserId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return new Account(
-                        rs.getString("user_id"),
-                        rs.getString("username"),
-                        rs.getString("avatar_link"),
-                        rs.getString("bio")
-                    );
-                }
-            }
-        }
-        return null;
-    }
-
-    /*// Old Method to update an account's details (Not used in the new code)
-    public static boolean updateAccount(UUID userId, String userName, String avatarLink, String bio) throws SQLException {
-        String hashedUserId = IDHash.hashUUID(userId);
-
-        List<String> updates = new ArrayList<>();
-        List<Object> params = new ArrayList<>();
-
-        if (userName != null) {
-            updates.add("username = ?");
-            params.add(userName);
-        }
-        if (avatarLink != null) {
-            updates.add("avatar_link = ?");
-            params.add(avatarLink);
-        }
-        if (bio != null) {
-            updates.add("bio = ?");
-            params.add(bio);
-        }
-
-        if (updates.isEmpty()) {
-            return false; // Nothing to update
-        }
-
-        String query = "UPDATE account SET " + String.join(", ", updates) + " WHERE user_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-
-            int index = 1;
-            for (Object param : params) {
-                pstmt.setObject(index++, param);
-            }
-            pstmt.setString(index, hashedUserId);
-
-            return pstmt.executeUpdate() > 0;
-        }
-    } */
 
     // Method to update username and bio together
-    public static boolean updateUsernameAndBio(UUID userId, String userName, String bio) throws SQLException {
-        String hashedUserId = IDHash.hashUUID(userId);
-    
+    public static boolean updateUsernameAndBio(String userId, String userName, String bio) throws SQLException {
         List<String> updates = new ArrayList<>();
         List<Object> params = new ArrayList<>();
-    
+
         if (userName != null) {
             updates.add("username = ?");
             params.add(userName);
@@ -243,52 +230,48 @@ public class AccountDAO {
             updates.add("bio = ?");
             params.add(bio);
         }
-    
+
         // If nothing to update, return false
         if (updates.isEmpty()) {
             return false;
         }
-    
+
         String query = "UPDATE account SET " + String.join(", ", updates) + " WHERE user_id = ?";
-    
+
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
-    
+
             int index = 1;
             for (Object param : params) {
                 pstmt.setObject(index++, param);
             }
-            pstmt.setString(index, hashedUserId);
-    
+            pstmt.setString(index, userId);
+
             return pstmt.executeUpdate() > 0;
         }
     }
-    
 
     // Method to update avatar link
-    public static boolean updateAvatar(UUID userId, String avatarLink) throws SQLException {
-        String hashedUserId = IDHash.hashUUID(userId);
+    public static boolean updateAvatar(String userId, String avatarLink) throws SQLException {
         String query = "UPDATE account SET avatar_link = ? WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, avatarLink);
-            pstmt.setString(2, hashedUserId);
+            pstmt.setString(2, userId);
 
             return pstmt.executeUpdate() > 0;
         }
     }
 
-
     // Method to update password (hashed)
-    public static boolean updatePassword(UUID userId, String passwordHash) throws SQLException {
-        String hashedUserId = IDHash.hashUUID(userId);
+    public static boolean updatePassword(String userId, String passwordHash) throws SQLException {
         String query = "UPDATE account SET password_hash = ? WHERE user_id = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, passwordHash);
-            pstmt.setString(2, hashedUserId);
+            pstmt.setString(2, userId);
 
             return pstmt.executeUpdate() > 0;
         }

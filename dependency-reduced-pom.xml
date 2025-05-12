@@ -9,10 +9,6 @@
   <artifactId>ViFinanceCommon</artifactId>
   <repositories>
     <repository>
-      <id>github</id>
-      <url>https://maven.pkg.github.com/mailslurp/mailslurp-client-java</url>
-    </repository>
-    <repository>
       <id>google-api-repository</id>
       <url>https://maven-central.storage.googleapis.com</url>
     </repository>
