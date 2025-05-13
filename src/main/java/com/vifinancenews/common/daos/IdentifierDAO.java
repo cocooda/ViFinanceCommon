@@ -2,9 +2,14 @@ package com.vifinancenews.common.daos;
 
 import com.vifinancenews.common.config.DatabaseConfig;
 import com.vifinancenews.common.models.Identifier;
+import com.vifinancenews.common.utilities.IDHash;
 
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class IdentifierDAO {
@@ -138,15 +143,51 @@ public class IdentifierDAO {
     }
 
     public static boolean deleteExpiredIdentifiers(int days) throws SQLException {
-        String query = "DELETE FROM identifier WHERE id IN (SELECT id FROM deleted_accounts WHERE deleted_at < NOW() - INTERVAL ? DAY)";
-        
+        String expiredAccountsQuery = "SELECT user_id FROM deleted_accounts WHERE deleted_at < NOW() - INTERVAL '" + days + " days'";
+        Set<String> expiredUserIds = new HashSet<>();
+    
         try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, days);
-            int rowsDeleted = stmt.executeUpdate();
-            return rowsDeleted > 0;
+             PreparedStatement stmt = conn.prepareStatement(expiredAccountsQuery);
+             ResultSet rs = stmt.executeQuery()) {
+    
+            while (rs.next()) {
+                expiredUserIds.add(rs.getString("user_id"));
+            }
+        }
+    
+        if (expiredUserIds.isEmpty()) return false;
+    
+        String identifiersQuery = "SELECT id FROM identifier";
+        List<UUID> idsToDelete = new ArrayList<>();
+    
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(identifiersQuery);
+             ResultSet rs = stmt.executeQuery()) {
+    
+            while (rs.next()) {
+                UUID id = UUID.fromString(rs.getString("id"));
+                String hashed = IDHash.hashUUID(id);
+                if (expiredUserIds.contains(hashed)) {
+                    idsToDelete.add(id);
+                }
+            }
+        }
+    
+        if (idsToDelete.isEmpty()) return false;
+    
+        // Build SQL DELETE query using IN clause
+        String deleteQuery = "DELETE FROM identifier WHERE id = ANY (?)";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(deleteQuery)) {
+    
+            UUID[] uuidArray = idsToDelete.toArray(new UUID[0]);
+            Array sqlArray = conn.createArrayOf("UUID", uuidArray);
+            stmt.setArray(1, sqlArray);
+    
+            return stmt.executeUpdate() > 0;
         }
     }
+    
 
     public static boolean updatePassword(String email, String newPasswordHash) throws SQLException {
         String query = "UPDATE identifier SET password_hash = ?, failed_attempts = 0, lockout_until = NULL WHERE email = ?";

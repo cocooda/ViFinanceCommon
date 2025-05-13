@@ -196,15 +196,15 @@ public class AccountDAO {
 
     // Method to delete expired deleted accounts
     public static boolean deleteExpiredDeletedAccounts(int days) throws SQLException {
-        String query = "DELETE FROM deleted_accounts WHERE deleted_at < NOW() - INTERVAL '?' DAY";
+    String query = "DELETE FROM deleted_accounts WHERE deleted_at < NOW() - INTERVAL '" + days + " days'";
 
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+    try (Connection conn = DatabaseConfig.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(query)) {
 
-            stmt.setInt(1, days);
-            return stmt.executeUpdate() > 0;
-        }
+        return stmt.executeUpdate() > 0;
     }
+}
+
 
     // Method to delete an account from the deleted_accounts table
     public static boolean deleteFromDeletedAccounts(String userId) throws SQLException {
@@ -264,16 +264,4 @@ public class AccountDAO {
         }
     }
 
-    // Method to update password (hashed)
-    public static boolean updatePassword(String userId, String passwordHash) throws SQLException {
-        String query = "UPDATE account SET password_hash = ? WHERE user_id = ?";
-
-        try (Connection conn = DatabaseConfig.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, passwordHash);
-            pstmt.setString(2, userId);
-
-            return pstmt.executeUpdate() > 0;
-        }
-    }
 }
