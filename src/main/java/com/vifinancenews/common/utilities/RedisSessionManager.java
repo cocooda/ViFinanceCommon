@@ -15,7 +15,7 @@ public class RedisSessionManager {
     }
 
     public static String createSession(Map<String, Object> sessionData) {
-        try (Jedis jedis = com.vifinancenews.common.utilities.RedisConnection.getConnection()) {
+        try (Jedis jedis = RedisConnection.getConnection()) {
             String sessionId = UUID.randomUUID().toString();
             String json = objectMapper.writeValueAsString(sessionData);
             jedis.setex(sessionKey(sessionId), SESSION_TTL, json);
@@ -27,7 +27,7 @@ public class RedisSessionManager {
     }
 
     public static Map<String, Object> getSession(String sessionId) {
-        try (Jedis jedis = com.vifinancenews.common.utilities.RedisConnection.getConnection()) {
+        try (Jedis jedis = RedisConnection.getConnection()) {
             String json = jedis.get(sessionKey(sessionId));
             if (json == null) return null;
             return objectMapper.readValue(json, Map.class);
@@ -38,7 +38,7 @@ public class RedisSessionManager {
     }
 
     public static void updateSession(String sessionId, Map<String, Object> sessionData) {
-        try (Jedis jedis = com.vifinancenews.common.utilities.RedisConnection.getConnection()) {
+        try (Jedis jedis = RedisConnection.getConnection()) {
             String json = objectMapper.writeValueAsString(sessionData);
             jedis.setex(sessionKey(sessionId), SESSION_TTL, json);
         } catch (Exception e) {
@@ -47,7 +47,7 @@ public class RedisSessionManager {
     }
 
     public static void destroySession(String sessionId) {
-        try (Jedis jedis = com.vifinancenews.common.utilities.RedisConnection.getConnection()) {
+        try (Jedis jedis = RedisConnection.getConnection()) {
             jedis.del(sessionKey(sessionId));
         } catch (Exception e) {
             e.printStackTrace();
