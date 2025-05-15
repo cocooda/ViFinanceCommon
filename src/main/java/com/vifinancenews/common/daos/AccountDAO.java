@@ -7,7 +7,9 @@ import com.vifinancenews.common.utilities.IDHash;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -263,5 +265,59 @@ public class AccountDAO {
             return pstmt.executeUpdate() > 0;
         }
     }
+
+    public static Map<String, Object> getSavedArticles(String userId, int page, int pageSize) {
+        List<Map<String, Object>> articles = new ArrayList<>();
+        int totalCount = 0;
+
+        String dataQuery = """
+                SELECT a.article_id, a.saved_at, ar.title, ar.url
+                FROM account_article a
+                JOIN article ar ON a.article_id = ar.article_id
+                WHERE a.user_id = ?
+                ORDER BY a.saved_at DESC
+                LIMIT ? OFFSET ?
+            """;
+
+        String countQuery = "SELECT COUNT(*) FROM account_article WHERE user_id = ?";
+
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            // Fetch articles
+            try (PreparedStatement pstmt = conn.prepareStatement(dataQuery)) {
+                int offset = (page - 1) * pageSize;
+                pstmt.setString(1, userId);
+                pstmt.setInt(2, pageSize);
+                pstmt.setInt(3, offset);
+
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        Map<String, Object> article = new HashMap<>();
+                        article.put("articleId", rs.getString("article_id"));
+                        article.put("savedAt", rs.getTimestamp("saved_at").toLocalDateTime());
+                        article.put("title", rs.getString("title"));
+                        article.put("url", rs.getString("url"));
+                        articles.add(article);
+                    }
+                }
+            }
+
+            // Fetch total count
+            try (PreparedStatement pstmt = conn.prepareStatement(countQuery)) {
+                pstmt.setString(1, userId);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        totalCount = rs.getInt(1);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("articles", articles);
+        result.put("totalCount", totalCount);
+        return result;
+        }
 
 }
