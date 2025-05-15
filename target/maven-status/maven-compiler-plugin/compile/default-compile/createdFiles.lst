@@ -5,6 +5,7 @@ com\vifinancenews\common\models\Account.class
 com\vifinancenews\common\utilities\RedisCacheService.class
 com\vifinancenews\common\utilities\OTPGenerator.class
 com\vifinancenews\common\daos\IdentifierDAO.class
+com\vifinancenews\common\utilities\AccountDeletionScheduler.class
 com\vifinancenews\common\daos\AccountDAO.class
 com\vifinancenews\common\utilities\IDHash.class
 com\vifinancenews\common\utilities\RedisSessionManager.class

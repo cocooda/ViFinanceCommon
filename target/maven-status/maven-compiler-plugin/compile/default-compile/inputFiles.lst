@@ -2,6 +2,7 @@ C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vif
 C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vifinancenews\common\config\DatabaseConfig.java
 C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vifinancenews\common\config\S3Config.java
 C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vifinancenews\common\utilities\EmailUtility.java
+C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vifinancenews\common\utilities\AccountDeletionScheduler.java
 C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vifinancenews\common\models\Identifier.java
 C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vifinancenews\common\utilities\RedisSessionManager.java
 C:\Users\duydu\Github\GitHub\CS3332\VNdemo\ViFinanceCommon\src\main\java\com\vifinancenews\common\utilities\IDHash.java
